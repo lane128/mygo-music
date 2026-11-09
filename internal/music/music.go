@@ -42,6 +42,9 @@ type Track struct {
 	URL string `json:"url,omitempty"`
 	// Unavailable says the listener can't play it, for a source that knows.
 	Unavailable bool `json:"unavailable,omitempty"`
+	// LikeCountText is the source's display text for the song's total likes,
+	// such as "1w+". Empty means unknown; the app never formats or adjusts it.
+	LikeCountText string `json:"likeCountText,omitempty"`
 
 	// An episode of a podcast is a track like any other, that says which show
 	// it's of, what it's about and when it came out, as the source has it.

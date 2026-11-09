@@ -216,6 +216,51 @@ func (a *app) likeButton(c *ui.Context, tr *music.Track, size float32, color ui.
 	return wrap
 }
 
+// playerLikeLines matches the title, subtitle and space between them beside a heart.
+type playerLikeLines struct {
+	title, subtitle, gap float32
+}
+
+// playerLikeButton puts the source's total-likes text beneath the player heart.
+// Beside song metadata, its rows follow the text rather than the button's hit area.
+func (a *app) playerLikeButton(c *ui.Context, tr *music.Track, size float32, color ui.Color, lines ...playerLikeLines) ui.Element {
+	if tr.LikeCountText == "" {
+		return a.likeButton(c, tr, size, color)
+	}
+	height, subtitleHeight, gap, optical := size+16, float32(0), float32(0), float32(0)
+	captionY := float32(0)
+	if len(lines) > 0 {
+		_, height = c.MeasureText(0, ui.Span{Text: tr.Name, Size: lines[0].title})
+		subtitleHeight, gap = height*lines[0].subtitle/lines[0].title, lines[0].gap
+		// Center the heart's visible shape against the letters, whose line
+		// box also reserves space for ascenders and descenders.
+		optical = 2
+		captionY = max(0, (lines[0].subtitle-12)/3)
+	}
+	return ui.Column(c).AlignSelf(ui.Center).AlignItems(ui.Center).Gap(gap).MinWidth(size + 16).MaxWidth(80).Children(func() {
+		// The full button overflows this title-height slot, retaining its hit area.
+		ui.Box(c.Key("heart-row")).Size(size+16, height).Center().Children(func() {
+			top := (height-size-16)/2 + optical
+			if a.trackLib(tr).canLike(tr) {
+				a.likeButton(c.Key("heart"), tr, size, color).Absolute().Left(0).Top(top).Size(size+16, size+16)
+			} else {
+				ui.Box(c.Key("heart")).Absolute().Left(0).Top(top).Size(size+16, size+16).Center().Children(func() {
+					ui.Icon(c, iconHeart).Size(size, size).TextColor(color)
+				})
+			}
+		})
+		// Center the smaller count within the subtitle's row, independently
+		// of its baseline; the two lines need the same visible center.
+		caption := ui.Box(c).Center().MinWidth(size + 16).MaxWidth(80)
+		if subtitleHeight > 0 {
+			caption.Height(subtitleHeight)
+		}
+		caption.Children(func() {
+			ui.Text(c, tr.LikeCountText).FontSize(10.5).TextColor(color).SingleLine().MaxWidth(80).Translate(0, captionY).Tooltip(tr.LikeCountText)
+		})
+	})
+}
+
 // burstColors are the confetti's colors, around the heart's red.
 var burstColors = []ui.Color{
 	ui.Hex("#ff4d6d"), ui.Hex("#ff9f1c"), ui.Hex("#ffd166"),

@@ -146,10 +146,15 @@ func pillButton(c *ui.Context, icon *ui.SVG, label string, bg, fg ui.Color) ui.E
 	return b
 }
 
-// cover shows an artwork, or a placeholder of the same size while it loads.
-func (a *app) cover(c *ui.Context, url string, px int, size, radius float32) ui.Element {
+// cover shows an artwork, or a placeholder while it loads. An unavailable
+// track's cover is dimmed and drawn in grayscale, independently of its actions.
+func (a *app) cover(c *ui.Context, url string, px int, size, radius float32, unavailable ...bool) ui.Element {
 	p := a.pal
+	gray := len(unavailable) > 0 && unavailable[0]
 	box := ui.Box(c).Size(size, size).Radius(radius).Center()
+	if gray {
+		box.Opacity(0.4)
+	}
 	bmp := bitmap(a.art.get(sized(url, px), false))
 	in := artIn(box, bmp)
 	if in < 1 {
@@ -159,7 +164,7 @@ func (a *app) cover(c *ui.Context, url string, px int, size, radius float32) ui.
 		if in < 1 {
 			ui.Icon(c, iconNote).Size(size*0.3, size*0.3).TextColor(p.faint).Opacity(1 - in)
 		}
-		artImage(c, bmp, radius, in)
+		artImage(c, bmp, radius, in, gray)
 	})
 	return box
 }
@@ -195,11 +200,14 @@ func artIn(el ui.Element, bmp *ui.Bitmap) float32 {
 
 // artImage fills its parent with bmp, its corners rounded by radius, as
 // far faded in as in.
-func artImage(c *ui.Context, bmp *ui.Bitmap, radius, in float32) {
+func artImage(c *ui.Context, bmp *ui.Bitmap, radius, in float32, gray ...bool) {
 	if bmp == nil || in <= 0 {
 		return
 	}
 	img := ui.Image(c, bmp).Absolute().Top(0).Left(0).Right(0).Bottom(0).Fit(ui.Cover).Radius(radius)
+	if len(gray) > 0 && gray[0] {
+		img.Grayscale()
+	}
 	if in < 1 {
 		img.Opacity(in)
 	}

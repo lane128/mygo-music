@@ -11,6 +11,8 @@ const tracks = [1, 2, 3].map((n) => ({
   artists: [artist],
   album,
   duration: 12000,
+  // Format the total in the plugin; the player displays this string unchanged.
+  likeCountText: ["1w+", "9402", "0"][n - 1],
 }));
 
 const episodes = [1, 2].map((n) => ({

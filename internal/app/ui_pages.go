@@ -471,14 +471,17 @@ func sameTrack(x, y *music.Track) bool {
 // trackRow is a row of the list tracks, its track i, which plays the list from
 // there as it's clicked.
 func (a *app) trackRow(c *ui.Context, tracks []music.Track, i int, covers bool, pid string) {
-	p := a.pal
 	tr := &tracks[i]
+	p := a.pal.forTrack(tr.Unavailable)
 	w, _ := c.Size()
 	// An album's page has no column of the album its songs are on.
 	wide := w-sidebarWidth > 820 && a.route.page != pageAlbum
-	playing := sameTrack(a.pl.Current(), tr)
+	playing := sameTrack(a.pl.Current(), tr) && !tr.Unavailable
 	row := ui.ButtonBase(c.Key(tr.ID)).Height(54).PaddingX(12).Gap(14).Radius(10).AlignItems(ui.Center).FocusRing(false).Label(tr.Name).
 		ContextMenu(a.songItems(tr, pid))
+	if tr.Unavailable {
+		row.Description(T("Can't play"))
+	}
 	hovered := row.Hovered()
 	bg := ui.Transparent
 	switch {
@@ -488,9 +491,6 @@ func (a *app) trackRow(c *ui.Context, tracks []music.Track, i int, covers bool, 
 		bg = p.hover
 	}
 	row.Background(row.AnimateColor("bg", bg, ui.Animation{Duration: 100 * time.Millisecond}))
-	if tr.Unavailable {
-		row.Opacity(0.42)
-	}
 	a.wantLike(tr)
 	row.Children(func() {
 		ui.Box(c).Width(26).Center().Children(func() {
@@ -504,7 +504,7 @@ func (a *app) trackRow(c *ui.Context, tracks []music.Track, i int, covers bool, 
 			}
 		})
 		if covers {
-			a.cover(c, tr.Album.ImageURL, 96, 38, 6)
+			a.cover(c, tr.Album.ImageURL, 96, 38, 6, tr.Unavailable)
 		}
 		ui.Column(c).Grow(3).Basis(0).MinWidth(0).Gap(3).Children(func() {
 			name := p.text
@@ -527,7 +527,10 @@ func (a *app) trackRow(c *ui.Context, tracks []music.Track, i int, covers bool, 
 		// A liked song's heart shows; the others' as the pointer is on them.
 		ui.Box(c).Size(32, 32).Center().Children(func() {
 			if a.isLiked(tr) || hovered {
-				a.likeButton(c.Key("like"), tr, 15, p.muted)
+				heart := a.likeButton(c.Key("like"), tr, 15, a.pal.muted)
+				if tr.Unavailable {
+					heart.Opacity(0.6)
+				}
 			}
 		})
 		ui.Text(c, clock(tr.Length())).FontSize(12.5).FontFeatures("tnum").TextColor(p.faint).Width(44).TextAlign(ui.End)

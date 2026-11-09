@@ -95,6 +95,50 @@ export async function recent() {
 	}
 }
 
+// A plugin's like captions survive decoding and queue/session encoding without host-side number formatting.
+func TestTrackLikeCountText(t *testing.T) {
+	p := load(t, plain, `
+const tracks = [
+  { id: "old", name: "Legacy" },
+  { id: "empty", name: "Missing", likeCountText: "" },
+  { id: "zero", name: "Zero", likeCountText: "0" },
+  { id: "capped", name: "Capped", likeCountText: "1w+" },
+  { id: "custom", name: "Custom", likeCountText: "赞 <1w+>" }
+];
+export function search() { return { tracks }; }
+export function playlist() { return { id: "list", name: "List", tracks }; }
+`)
+	search, err := p.Search("", music.SearchTracks, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	playlist, err := p.Playlist("list")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, tracks := range map[string][]music.Track{"search": search.Tracks, "playlist": playlist.Tracks} {
+		want := []string{"", "", "0", "1w+", "赞 <1w+>"}
+		if len(tracks) != len(want) {
+			t.Fatalf("%s returned %d tracks", name, len(tracks))
+		}
+		for i, track := range tracks {
+			data, err := json.Marshal(track)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var persisted struct {
+				LikeCountText string `json:"likeCountText"`
+			}
+			if err := json.Unmarshal(data, &persisted); err != nil {
+				t.Fatal(err)
+			}
+			if persisted.LikeCountText != want[i] {
+				t.Errorf("%s track %s: caption %q, want %q", name, track.ID, persisted.LikeCountText, want[i])
+			}
+		}
+	}
+}
+
 // TypeScript runs as it is, so plugins needn't be built.
 func TestTypeScript(t *testing.T) {
 	p := load(t, `{"id":"x","main":"index.ts"}`, `

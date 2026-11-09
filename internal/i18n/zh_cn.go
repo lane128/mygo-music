@@ -50,6 +50,7 @@ var zhCN = map[string]string{
 	"Buffering…":                         "正在缓冲…",
 	"Cache":                              "缓存",
 	"Cancel":                             "取消",
+	"Can't play":                         "不可播放",
 	"Change Repeat Mode":                 "切换循环模式",
 	"Check for Updates":                  "检查更新",
 	"Check for Updates Automatically":    "自动检查更新",

@@ -369,7 +369,10 @@ func (a *app) nowPlayingBody(c *ui.Context, tr *music.Track, art *artwork, accen
 						ui.Text(c, tr.Name).FontSize(22).FontWeight(700).LetterSpacing(-0.3).SingleLine()
 						a.artistLinks(c, tr, white.Alpha(0.6), white, true).FontSize(15).SingleLine()
 					})
-					a.likeButton(c.Key("like"), tr, 22, white.Alpha(0.7))
+					heart := a.playerLikeButton(c.Key("like"), tr, 22, white.Alpha(0.7), playerLikeLines{22, 15, 4})
+					if tr.LikeCountText != "" {
+						heart.AlignSelf(ui.End)
+					}
 					a.songMenu(c.Key("more"), tr, 22, white.Alpha(0.7)).Margin(0, -8, 0, 0)
 				})
 				a.npRise(a.scrubber(c.Key("np-scrub"), &a.npScrub, white.Alpha(0.18), white.Alpha(0.9), 16, accent.Mix(white, 0.35)), 2)
@@ -576,7 +579,7 @@ func (a *app) stageBar(c *ui.Context, tr *music.Track, art *artwork, accent ui.C
 						ui.Text(c, tr.Name).FontSize(14).FontWeight(700).SingleLine()
 						a.artistLinks(c, tr, white.Alpha(0.55), white).FontSize(12).SingleLine()
 					})
-					a.likeButton(c.Key("like"), tr, 17, white.Alpha(0.6))
+					a.playerLikeButton(c.Key("like"), tr, 17, white.Alpha(0.6), playerLikeLines{14, 12, 2})
 					a.songMenu(c.Key("more"), tr, 17, white.Alpha(0.6)).Margin(0, 0, 0, -10)
 				})
 			})
@@ -847,24 +850,35 @@ func (a *app) queuePane(c *ui.Context) {
 		i := order[r]
 		tr := &pl.Queue()[i]
 		playing := r == at
+		// Now Playing stays on its dark artwork backdrop in either app theme.
+		p := paletteFor(&ui.Theme{Dark: true}).forTrack(tr.Unavailable)
+		a.wantLike(tr)
 		row := ui.ButtonBase(c.Key(i)).Height(58).PaddingX(10).Gap(14).Radius(12).AlignItems(ui.Center).FocusRing(false).Label(tr.Name).
 			ContextMenu(a.songItems(tr, ""))
+		if tr.Unavailable {
+			row.Description(T("Can't play"))
+		}
 		switch {
-		case playing:
+		case playing && !tr.Unavailable:
 			row.Background(white.Alpha(0.12))
-		case row.Hovered():
+		case row.Hovered() && !tr.Unavailable:
 			row.Background(white.Alpha(0.08))
 		}
-		if tr.Unavailable {
-			row.Opacity(0.4)
-		}
 		row.Children(func() {
-			a.cover(c, tr.Album.ImageURL, 96, 42, 7)
+			a.cover(c, tr.Album.ImageURL, 96, 42, 7, tr.Unavailable)
 			ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
-				ui.Text(c, tr.Name).FontSize(14).FontWeight(600).SingleLine()
-				a.artistLinks(c, tr, white.Alpha(0.55), white).FontSize(12.5).SingleLine()
+				ui.Text(c, tr.Name).FontSize(14).FontWeight(600).TextColor(p.text).SingleLine()
+				a.artistLinks(c, tr, p.muted, p.text).FontSize(12.5).SingleLine()
 			})
-			ui.Text(c, clock(tr.Length())).FontSize(12).FontFeatures("tnum").TextColor(white.Alpha(0.4))
+			ui.Box(c).Size(32, 32).Center().Children(func() {
+				if a.isLiked(tr) || row.Hovered() {
+					heart := a.likeButton(c.Key("like"), tr, 15, white.Alpha(0.55))
+					if tr.Unavailable {
+						heart.Opacity(0.6)
+					}
+				}
+			})
+			ui.Text(c, clock(tr.Length())).FontSize(12).FontFeatures("tnum").TextColor(p.faint)
 		})
 		if row.Clicked() && !tr.Unavailable && !playing {
 			pl.Jump(i)

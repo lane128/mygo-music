@@ -412,7 +412,7 @@ func (a *app) playerBar(c *ui.Context) {
 			if info.Clicked() {
 				a.nowPlaying = true
 			}
-			a.likeButton(c.Key("like"), tr, 16, p.muted).Margin(0, 0, 0, 4).Shrink(0)
+			a.playerLikeButton(c.Key("like"), tr, 16, p.muted, playerLikeLines{13.5, 12, 3}).Margin(0, 0, 0, 4).Shrink(0)
 		})
 
 		// Controls over the progress.

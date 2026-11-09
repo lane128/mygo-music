@@ -199,11 +199,14 @@ func episodeCount(n int) string {
 
 // episodeRow is an episode in its show's list, which a click plays.
 func (a *app) episodeRow(c *ui.Context, d *showData, i int, cur *music.Track) {
-	p := a.pal
 	tr := &d.episodes[i]
-	playing := sameTrack(cur, tr)
+	p := a.pal.forTrack(tr.Unavailable)
+	playing := sameTrack(cur, tr) && !tr.Unavailable
 	row := ui.ButtonBase(c).Height(60).PaddingX(12).Gap(14).Radius(8).AlignItems(ui.Center).FocusRing(false).
-		Label(tr.Name).Disabled(tr.Unavailable).ContextMenu(a.songItems(tr, ""))
+		Label(tr.Name).ContextMenu(a.songItems(tr, ""))
+	if tr.Unavailable {
+		row.Description(T("Can't play"))
+	}
 	switch {
 	case playing:
 		row.Background(p.accent.Alpha(0.08))
@@ -216,9 +219,9 @@ func (a *app) episodeRow(c *ui.Context, d *showData, i int, cur *music.Track) {
 		if cover == "" {
 			cover = d.show.ImageURL
 		}
-		a.cover(c, cover, 96, 40, 6)
+		a.cover(c, cover, 96, 40, 6, tr.Unavailable)
 		ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Gap(3).Children(func() {
-			title := ui.Text(c, tr.Name).FontSize(13.5).FontWeight(500).SingleLine()
+			title := ui.Text(c, tr.Name).FontSize(13.5).FontWeight(500).TextColor(p.text).SingleLine()
 			if playing {
 				title.TextColor(p.accent)
 			}
@@ -232,12 +235,15 @@ func (a *app) episodeRow(c *ui.Context, d *showData, i int, cur *music.Track) {
 		// A liked episode's heart shows; the others' as the pointer is on them.
 		ui.Box(c).Size(32, 32).Center().Children(func() {
 			if a.isLiked(tr) || row.Hovered() {
-				a.likeButton(c.Key("like"), tr, 15, p.muted)
+				heart := a.likeButton(c.Key("like"), tr, 15, a.pal.muted)
+				if tr.Unavailable {
+					heart.Opacity(0.6)
+				}
 			}
 		})
 		ui.Text(c, clock(time.Duration(tr.Duration)*time.Millisecond)).FontSize(12).FontFeatures("tnum").TextColor(p.muted)
 	})
-	if row.Clicked() {
+	if row.Clicked() && !tr.Unavailable {
 		a.pl.PlayTrack(d.episodes, i)
 	}
 }

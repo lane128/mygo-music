@@ -275,7 +275,7 @@ func (a *app) radioCard(c *ui.Context, lib *library) {
 					a.artistLinks(c, tr, white.Alpha(0.7), white, true).FontSize(14).SingleLine()
 				}
 				ui.Row(c).Gap(14).AlignItems(ui.Center).Margin(20, 0, 0, -8).Children(func() {
-					a.likeButton(c.Key("like"), tr, 20, white.Alpha(0.8))
+					a.playerLikeButton(c.Key("like"), tr, 20, white.Alpha(0.8))
 					play := ui.ButtonBase(c.Key("play")).Size(56, 56).Center().Radius(999).Background(white).TextColor(ui.Hex("#1d1d1f")).Label(T("Play/Pause"))
 					pose := ui.Pose{}
 					if play.Pressed() {
